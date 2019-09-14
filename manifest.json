@@ -4,6 +4,7 @@
   "description": "Copy the issues links with well-formatted description in seconds!",
   "permissions": [
     "activeTab",
+    "tabs",
     "http://gitlab.com/*",
     "https://gitlab.com/*",
     "clipboardWrite"

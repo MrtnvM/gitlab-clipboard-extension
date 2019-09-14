@@ -6,28 +6,91 @@ chrome.runtime.sendMessage({ action: 'activate' }, (response) => {
     }
 
     observeChangesInBoard();
+    setupMergeRequestsList();
 });
 
-function addCopyButtonToTickets() {
-    const ticketSelector = '.board-card';
+// MARK: Control Key Observer
 
-    const tickets = document.querySelectorAll(ticketSelector);
-    tickets.forEach(addCopyButtonToTicket);
+function createControlKeyObserver() {
+    const controlKeys = ['ControlLeft', 'ControlRight', 'MetaLeft', 'MetaRight'];
+    const isControlKey = (code) => controlKeys.indexOf(code) !== 0;
+
+    let isMultiSelectionModeEnabled = false;
+    let keyUpObservers = [];
+    let contentItems = [];
+
+    const enableMultiSelectionMode = () => {
+        isMultiSelectionModeEnabled = true;
+
+        keyUpObservers.forEach(listener => listener());
+
+        keyUpObservers = [];
+        contentItems = [];
+    };
+
+    const disableMultiSelectionMode = () => {
+        if (!isMultiSelectionModeEnabled) {
+            return;
+        }
+
+        isMultiSelectionModeEnabled = false;
+
+        keyUpObservers.forEach(listener => listener());
+
+        if (contentItems.length > 0) {
+            const content = contentItems.join('\n');
+            copyStringToClipboard(content);
+        }
+
+        keyUpObservers = [];
+        contentItems = [];
+    };
+
+    document.addEventListener('keydown', (event) => {
+        if (isControlKey(event.code)) {
+            enableMultiSelectionMode();
+        }
+    });
+
+    document.addEventListener('keyup', (event) => {
+        if (isMultiSelectionModeEnabled && isControlKey(event.code)) {
+            disableMultiSelectionMode();
+        }
+    });
+
+    return {
+        isMultiSelectionEnabled: () => isMultiSelectionModeEnabled,
+        addOnKeyUpListener: (listener) => {
+            if (typeof listener === 'function') {
+                keyUpObservers.push(listener);
+            }
+        },
+        addTicketDescription: (contentItem) => {
+            if (isMultiSelectionModeEnabled && typeof contentItem === 'string') {
+                contentItems.push(contentItem);
+            }
+        }
+    };
 }
 
-function addCopyButtonToTicket(ticket) {
-    const containerSelector = '.board-card-header';
-    const container = ticket.querySelector(containerSelector);
+// MARK: Clipboard
 
-    if (container.querySelector('.clipboard-btn')) {
+function copyStringToClipboard(content) {
+    if (typeof content !== 'string') {
         return;
     }
 
-    const copyBtn = createCopyButton(ticket);
-    container.prepend(copyBtn);
+    const blob = new Blob([content], { type: 'text/plain' });
+    const data = new ClipboardItem({ 'text/plain': blob });
+
+    navigator.clipboard.write([data]).then(() => {
+        console.log(`Copied:\n${content}`);
+    }, function (error) {
+        console.error("Unable to write to clipboard: " + error);
+    });
 }
 
-function createCopyButton(ticket) {
+function createCopyButton(getContentCallback) {
     var span = document.createElement('span');
     var img = document.createElement('img');
     span.appendChild(img);
@@ -41,12 +104,16 @@ function createCopyButton(ticket) {
     span.style.marginRight = '4px';
 
     img.addEventListener('click', () => {
-        const content = getTicketDescription(ticket);
+        if (typeof getContentCallback !== 'function') {
+            return;
+        }
+
+        const content = getContentCallback();
 
         img.src = chrome.extension.getURL('images/copied.svg');
 
         const dropSelectionMode = () => {
-            setTimeout(() => img.src = chrome.extension.getURL('images/copy.svg'), 1300);
+            setTimeout(() => img.src = chrome.extension.getURL('images/copy.svg'), 1000);
         };
 
         if (ControlKeyObserver.isMultiSelectionEnabled()) {
@@ -61,6 +128,55 @@ function createCopyButton(ticket) {
     return span;
 }
 
+function addCopyButtonToItems(config) {
+    const {
+        itemSelector,
+        copyBtnContainerSelector,
+        itemsContainer,
+        getContentCallback
+    } = config;
+
+    const items = itemsContainer.querySelectorAll(itemSelector);
+    items.forEach((item) => {
+        const container = item.querySelector(copyBtnContainerSelector);
+
+        if (container.querySelector('.clipboard-btn')) {
+            return;
+        }
+
+        const copyBtn = createCopyButton(getContentCallback(item));
+        container.prepend(copyBtn);
+    });
+}
+
+// MARK: Gitlab Board
+
+function observeChangesInBoard() {
+    const boardSelector = '.boards-list';
+    const board = document.querySelector(boardSelector);
+    if (!board) {
+        return;
+    }
+
+    const callback = (mutationsList, observer) => {
+        addCopyButtonToTickets(board);
+    };
+
+    const config = { attributes: false, childList: true, subtree: true };
+    const observer = new MutationObserver(callback);
+
+    observer.observe(board, config);
+}
+
+function addCopyButtonToTickets(board) {
+    addCopyButtonToItems({
+        itemSelector: '.board-card',
+        copyBtnContainerSelector: '.board-card-header',
+        itemsContainer: board,
+        getContentCallback: (ticket) => () => getTicketDescription(ticket),
+    });
+}
+
 function getTicketDescription(ticket) {
     const tiketLinkSelector = '.board-card-title a';
     const linkTag = ticket.querySelector(tiketLinkSelector);
@@ -72,73 +188,34 @@ function getTicketDescription(ticket) {
     return content;
 }
 
-function copyStringToClipboard(content) {
-    const blob = new Blob([content], { type: 'text/plain' });
-    const data = new ClipboardItem({ 'text/plain': blob });
+// MARK: Merge Requests
 
-    navigator.clipboard.write([data]).then(() => {
-        console.log("Copied to clipboard successfully!");
-    }, function (error) {
-        console.error("Unable to write to clipboard: " + error);
+function setupMergeRequestsList() {
+    const mrListSelector = '.mr-list';
+    const mrList = document.querySelector(mrListSelector);
+    if (!mrList) {
+        return;
+    }
+
+    addCopyButtonToMRs(mrList);
+}
+
+function addCopyButtonToMRs(mrList) {
+    addCopyButtonToItems({
+        itemSelector: '.merge-request',
+        copyBtnContainerSelector: '.merge-request-title',
+        itemsContainer: mrList,
+        getContentCallback: (mr) => () => getMRDescription(mr),
     });
 }
 
-function observeChangesInBoard() {
-    const targetNode = document.querySelector('.boards-list');
-    const config = { attributes: false, childList: true, subtree: true };
+function getMRDescription(mr) {
+    const mrLinkSelector = '.merge-request-title-text a';
+    const linkTag = mr.querySelector(mrLinkSelector);
 
-    const callback = function (mutationsList, observer) {
-        addCopyButtonToTickets();
-    };
+    const title = linkTag.innerHTML;
+    const link = linkTag.href;
 
-    const observer = new MutationObserver(callback);
-
-    observer.observe(targetNode, config);
-}
-
-function createControlKeyObserver() {
-    const controlKeys = ['ControlLeft', 'ControlRight', 'MetaLeft', 'MetaRight'];
-    const isControlKey = (code) => controlKeys.indexOf(code) !== 0;
-
-    let isMultiSelectionModeEnabled = false;
-    let keyUpObservers = [];
-    let ticketsDescriptions = [];
-
-    document.addEventListener('keydown', (event) => {
-        if (isControlKey(event.code) && !event.isComposing) {
-            isMultiSelectionModeEnabled = true;
-            keyUpObservers = [];
-            ticketsDescriptions = [];
-        }
-    });
-
-    document.addEventListener('keyup', (event) => {
-        if (isMultiSelectionModeEnabled && isControlKey(event.code) && !event.isComposing) {
-            isMultiSelectionModeEnabled = false;
-
-            keyUpObservers.forEach(listener => listener());
-
-            if (ticketsDescriptions.length >= 0) {
-                const content = ticketsDescriptions.join('\n');
-                copyStringToClipboard(content);
-            }
-
-            keyUpObservers = [];
-            ticketsDescriptions = [];
-        }
-    });
-
-    return {
-        isMultiSelectionEnabled: () => isMultiSelectionModeEnabled,
-        addOnKeyUpListener: (listener) => {
-            if (typeof listener === 'function') {
-                keyUpObservers.push(listener);
-            }
-        },
-        addTicketDescription: (ticketDescription) => {
-            if (isMultiSelectionModeEnabled && typeof ticketDescription === 'string') {
-                ticketsDescriptions.push(ticketDescription);
-            }
-        }
-    };
+    const content = `*${title}*\n${link.replace('https://', '')}`;
+    return content;
 }
