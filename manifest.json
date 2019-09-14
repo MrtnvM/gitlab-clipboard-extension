@@ -1,7 +1,7 @@
 {
   "name": "Gitlab Clipboard Extension",
-  "version": "1.0",
-  "description": "Copy the issues links with well-formatted description in seconds!",
+  "version": "1.1",
+  "description": "Copy the issues and merge requests links with well-formatted description in seconds!",
   "permissions": [
     "activeTab",
     "tabs",
