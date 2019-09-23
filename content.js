@@ -380,8 +380,12 @@ function getMergeRequestDetailsDescription(ticketTitleContainer) {
     const tiketTitleSelector = 'h2.title';
     const titleTag = ticketTitleContainer.querySelector(tiketTitleSelector);
 
-    const title = titleTag.innerHTML;
+    let title = titleTag.innerHTML;
     const link = window.location.href;
+
+    var div = document.createElement("div");
+    div.innerHTML = title;
+    title = div.textContent || div.innerText || '';
 
     const content = `*${'MR: ' + title.trim()}*\n${link.replace('https://', '')}`;
     return content;
