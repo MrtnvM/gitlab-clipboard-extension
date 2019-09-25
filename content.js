@@ -1,15 +1,9 @@
 const ControlKeyObserver = createControlKeyObserver();
 
-chrome.runtime.sendMessage({ action: 'activate' }, (response) => {
-    if (!response.result) {
-        return;
-    }
-
-    observeChangesInBoard();
-    setupMergeRequestsList();
-    setupTicketDetails();
-    setupMergeRequestDetails();
-});
+observeChangesInBoard();
+setupMergeRequestsList();
+setupTicketDetails();
+setupMergeRequestDetails();
 
 // MARK: Control Key Observer
 
