@@ -82,14 +82,36 @@ function copyStringToClipboard(content) {
         return;
     }
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const data = new ClipboardItem({ 'text/plain': blob });
+    try {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const data = new ClipboardItem({ 'text/plain': blob });
 
-    navigator.clipboard.write([data]).then(() => {
-        console.log(`Copied:\n${content}`);
-    }, function (error) {
-        console.error("Unable to write to clipboard: " + error);
-    });
+        navigator.clipboard.write([data]).then(() => {
+            console.log(`Copied:\n${content}`);
+        }, function (error) {
+            console.error("Unable to write to clipboard: " + error);
+        });
+    } catch {
+        fallbackCopyTextToClipboard(content);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'successful' : 'unsuccessful';
+        console.log('Fallback: Copying text command was ' + msg);
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+    }
+
+    document.body.removeChild(textArea);
 }
 
 function createCopyButton(getContentCallback) {
