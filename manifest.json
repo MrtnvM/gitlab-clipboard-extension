@@ -1,20 +1,12 @@
 {
   "name": "Gitlab Clipboard Extension",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "Copy the issues and merge requests links with well-formatted description in seconds!",
   "permissions": [
-    "activeTab",
-    "tabs",
     "http://gitlab.com/*",
     "https://gitlab.com/*",
     "clipboardWrite"
   ],
-  "background": {
-    "scripts": [
-      "background.js"
-    ],
-    "persistent": false
-  },
   "content_scripts": [
     {
       "matches": [
