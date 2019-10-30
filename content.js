@@ -116,6 +116,7 @@ function createCopyButton(getContentCallback) {
     img.src = chrome.extension.getURL('images/copy.svg');
     img.style.width = '16px';
     img.style.height = '16px';
+    img.style.cursor = 'copy';
 
     span.className = 'clipboard-btn';
     span.style.marginTop = '-2.5px';
