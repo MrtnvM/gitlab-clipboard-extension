@@ -259,7 +259,7 @@ function observeChangesInBoard() {
 function addCopyButtonToTickets(board) {
     addCopyButtonToItems({
         itemSelector: '.board-card',
-        copyBtnContainerSelector: '.board-card-header',
+        copyBtnContainerSelector: '.gl-display-flex',
         itemsContainer: board,
         getContentCallback: (ticket) => () => getTicketDescription(ticket),
     });
