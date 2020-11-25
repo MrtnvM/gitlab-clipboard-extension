@@ -1,6 +1,6 @@
 {
   "name": "Gitlab Clipboard Extension",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Copy the issues and merge requests links with well-formatted description in seconds!",
   "permissions": [
     "http://gitlab.com/*",
