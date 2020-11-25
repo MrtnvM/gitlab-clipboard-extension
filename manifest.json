@@ -9,13 +9,8 @@
   ],
   "content_scripts": [
     {
-      "matches": [
-        "http://gitlab.com/*",
-        "https://gitlab.com/*"
-      ],
-      "js": [
-        "content.js"
-      ]
+      "matches": ["http://gitlab.com/*", "https://gitlab.com/*"],
+      "js": ["content.js"]
     }
   ],
   "icons": {
@@ -24,9 +19,6 @@
     "48": "images/logo48.png",
     "128": "images/logo128.png"
   },
-  "web_accessible_resources": [
-    "images/copy.svg",
-    "images/copied.svg"
-  ],
+  "web_accessible_resources": ["images/copy.svg", "images/copied.svg"],
   "manifest_version": 2
 }
